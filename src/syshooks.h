@@ -12,7 +12,7 @@
 
 // hook execution
 void write_hook(void *syscall_offset_addr, int32_t syscall_offset);
-long orignal_syscall(int NR_code, const struct pt_regs *regs);
+long original_syscall(int NR_code, const struct pt_regs *regs);
 
 // hook setup
 unsigned long get_kallsyms_lookup_name(void);
@@ -23,16 +23,15 @@ void debug_printk(const char *fmt, ...);
 
 
 // data table defines
-#define ORIGNAL_SYSCALL_ADDR 0
+#define ORIGINAL_SYSCALL_ADDR 0
 #define SYSCALL_OFFSET       1
 #define SYSCALL_OFFSET_ADDR  2
 
 // general defines
 #define DEBUG_MODE       0x01
 #define SCAN_SIZE        0x5000
-#define SYSHOOK_VERSION  "0.2"
+#define SYSHOOK_VERSION  "0.3"
 
 #endif
-
 
 

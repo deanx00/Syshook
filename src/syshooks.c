@@ -85,7 +85,7 @@ static int __init syshook_init(void) {
                     int32_t hooked_syscall_offset = (unsigned long) hooked_syscall_addr - (unsigned long) IP_addr;
 
                     // update data table
-                    data_table[NR_code][ORIGNAL_SYSCALL_ADDR] = (unsigned long) syscall_addr; 
+                    data_table[NR_code][ORIGINAL_SYSCALL_ADDR] = (unsigned long) syscall_addr; 
                     data_table[NR_code][SYSCALL_OFFSET] = (unsigned long) syscall_offset;
                     data_table[NR_code][SYSCALL_OFFSET_ADDR] = (unsigned long) syscall_offset_addr;
 
@@ -104,25 +104,23 @@ static int __init syshook_init(void) {
 
 //
 //  called when the kernel module is unloaded
-//  restore all the hooks to orignal syscalls
+//  restore all the hooks to original syscalls
 
 
 static void __exit syshook_exit(void) {
 
     for (int arg = 0; arg < args_size; arg++) {
         int NR_code = NR_codes[arg];
-
         if (NR_code < 0 || NR_code > __NR_syscalls)
             continue;
 
-        void *orignal_syscall_offset_addr = (void *) data_table[NR_code][SYSCALL_OFFSET_ADDR];
-
-        if (orignal_syscall_offset_addr == NULL)
+        void *original_syscall_offset_addr = (void *) data_table[NR_code][SYSCALL_OFFSET_ADDR];
+        if (original_syscall_offset_addr == NULL)
             continue;
 
-        int32_t orignal_syscall_offset = (int32_t) data_table[NR_code][SYSCALL_OFFSET];
+        int32_t original_syscall_offset = (int32_t) data_table[NR_code][SYSCALL_OFFSET];
 
-        write_hook(orignal_syscall_offset_addr, orignal_syscall_offset);
+        write_hook(original_syscall_offset_addr, original_syscall_offset);
         debug_printk("Successfully unhooked syscall: %i\n", NR_code);
     }
     debug_printk("Unloaded gracefully\n");
@@ -180,13 +178,13 @@ static inline void change_write_protection(int wp) {
 
 
 //
-// call the orignal syscall
-//
+// call the original syscall
 
-long orignal_syscall(int NR_code, const struct pt_regs *regs) {
+
+long original_syscall(int NR_code, const struct pt_regs *regs) {
 
     t_syscall orig_syscall;
-    orig_syscall = (t_syscall) data_table[NR_code][ORIGNAL_SYSCALL_ADDR];
+    orig_syscall = (t_syscall) data_table[NR_code][ORIGINAL_SYSCALL_ADDR];
 
     if (orig_syscall) {
         return orig_syscall(regs);
@@ -230,4 +228,3 @@ void debug_printk(const char *fmt, ...) {
     va_end(args);
 #endif
 }
-

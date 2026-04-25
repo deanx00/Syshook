@@ -51,8 +51,8 @@ static int __init syshook_init(void) {
     void *syscall_table = (void *) kallsyms_lookup_name("sys_call_table");
     void *syscall_switch = (void *) kallsyms_lookup_name("x64_sys_call");
 
-    debug_printk("Syscall_table addrres: 0x%lx\n", syscall_table);
-    debug_printk("Syscall_switch adddres: 0x%lx\n", syscall_switch);
+    debug_printk("Syscall_table address: 0x%lx\n", syscall_table);
+    debug_printk("Syscall_switch address: 0x%lx\n", syscall_switch);
     debug_printk("Setup complete... hooking...\n");
 
     for (int arg = 0; arg < args_size; arg++)  {  // loop all NR_codes to hook

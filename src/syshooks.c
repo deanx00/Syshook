@@ -58,7 +58,7 @@ static int __init syshook_init(void) {
     for (int arg = 0; arg < args_size; arg++)  {  // loop all NR_codes to hook
 
         int NR_code = NR_codes[arg];
-        if (NR_code < 0 || NR_code > __NR_syscalls + 1) {
+        if (NR_code < 0 || NR_code > __NR_syscalls) {
             debug_printk("Invalid NR code: %i\n", NR_code);
             continue;
         }

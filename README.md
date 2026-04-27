@@ -4,11 +4,11 @@ A modern syscall hooking framework for Linux x86_64
 
 ## About Syshook
 
-Syshook framework is a Linux Kernel Module that allows you to create syscall hooks for the newest kernel.  Written entirely in C, Syshook works by locating the syscall's offset in the new `x64_sys_call` switch and replacing it with an offset to call your hooked function.
+Syshook framework is a Linux Kernel Module (LKM) that allows you to create syscall hooks for the newest kernel.  Written entirely in C, Syshook works by locating the syscall's call offset in the new `x64_sys_call` switch and replacing it with an offset to call your hooked function.
 
-Syshook can hook many syscalls at once by accepting an array of NR codes at the command line.  To add your own hooked syscall simply add a hook function in hooks.c and recompile the kernal module.  See hooks.c and the [example code](#example-code) section for details. 
+Syshook can hook multiple syscalls at once by accepting an array of NR codes at the command line.  To add your own hooked syscall simply add a hook function in hooks.c and recompile the kernal module.  See hooks.c and the [example code](#example-code) section for details. 
 
-Syshook employees a few techniques to execute a hook; it uses `kallsyms_lookup_name` to find `x64_sys_call` and `sys_call_table` (to learn the syscall function addresses from the old `sys_call_table`, which still exists and contains valid syscall addresses), and it temporarily turns off write protection to read-only pages so it can overwrite the call offsets in the kernal code itself (by disabling the CPU's CR0:WP and CR4:CET if required).
+Syshook employees a few techniques to execute a hook; it uses `kallsyms_lookup_name` to find `x64_sys_call` and `sys_call_table` (to pull the syscall function addresses from the old `sys_call_table`, which still exists and contains valid syscall addresses), and it temporarily turns off write protection to read-only pages so it can overwrite the call offsets in the kernal code itself (by disabling the CPU's CR0:WP and CR4:CET if required).
 
 Syshook was written for educational purposes to learn about the new kernal and hooking syscalls, like intercepting `sys_recvfrom` to listen for magic packets or hooking `sys_kill` to make a process immortal.
 
@@ -45,7 +45,7 @@ sudo rmmod syshook.ko
 
 The following code hooks sys_kill and sys_reboot.
 
-To add your own syscall hooks, modify hooks.c to add your hooked function, then add a case with your NR_code to `get_hooked_syscall()`.
+To add your own syscall hooks, modify hooks.c to add your hooked function, then add a case with the NR_code to `get_hooked_syscall()`.
 
 
 ```C
@@ -91,4 +91,3 @@ asmlinkage long hooked_reboot(const struct pt_regs *regs) {
 }
 
 ```
-

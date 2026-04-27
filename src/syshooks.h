@@ -23,7 +23,7 @@ void debug_printk(const char *fmt, ...);
 
 
 // data table defines
-#define ORIGINAL_SYSCALL_ADDR 0
+#define SYSCALL_ADDR         0
 #define SYSCALL_OFFSET       1
 #define SYSCALL_OFFSET_ADDR  2
 
@@ -33,5 +33,6 @@ void debug_printk(const char *fmt, ...);
 #define SYSHOOK_VERSION  "0.3"
 
 #endif
+
 
 

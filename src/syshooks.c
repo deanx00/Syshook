@@ -17,7 +17,6 @@
 
 static int __init syshook_init(void);
 static void __exit syshook_exit(void);
-static inline void change_write_protection(int wp);
 
 typedef asmlinkage long (*t_syscall)(const struct pt_regs *regs); // universal syscall prototype for __x64_sys_ syscalls
 unsigned long data_table[__NR_syscalls][3];  // holds addresses and offsets
@@ -39,6 +38,7 @@ module_exit(syshook_exit);
 //
 //  called when the kernel module is loaded to execute the hook
 //
+
 static int __init syshook_init(void) {
 
     debug_printk("Loaded Syshook v%s", SYSHOOK_VERSION);
@@ -85,7 +85,7 @@ static int __init syshook_init(void) {
                     int32_t hooked_syscall_offset = (unsigned long) hooked_syscall_addr - (unsigned long) IP_addr;
 
                     // update data table
-                    data_table[NR_code][ORIGINAL_SYSCALL_ADDR] = (unsigned long) syscall_addr; 
+                    data_table[NR_code][SYSCALL_ADDR] = (unsigned long) syscall_addr; 
                     data_table[NR_code][SYSCALL_OFFSET] = (unsigned long) syscall_offset;
                     data_table[NR_code][SYSCALL_OFFSET_ADDR] = (unsigned long) syscall_offset_addr;
 
@@ -105,7 +105,6 @@ static int __init syshook_init(void) {
 //
 //  called when the kernel module is unloaded
 //  restore all the hooks to original syscalls
-
 
 static void __exit syshook_exit(void) {
 
@@ -132,59 +131,47 @@ static void __exit syshook_exit(void) {
 //
 
 void write_hook(void *syscall_offset_addr, int32_t syscall_offset) {
-
-    change_write_protection(0);
-    memcpy(syscall_offset_addr, &syscall_offset, sizeof(syscall_offset));
-    change_write_protection(1);
-}
-
-
-//
-//  turn on/off write protection via CR0:WP 
-//  also turn on/off control flow enforcement via CR4:CET when its enabled (like Raptor Lake CPUs)
-
-static inline void change_write_protection(int wp) {
-
+    
     unsigned long __force_order; // prevent compiler from reordering asm instructions
-    static unsigned long cr4_orig = 0;
-
-    unsigned long cr0_val;
-    unsigned long cr4_val;
-
-    asm volatile("mov %%cr0, %0" : "=r"(cr0_val));
-    asm volatile("mov %%cr4, %0" : "=r"(cr4_val));
-
-    if (wp == 0) { // off - dissable write protect
-
-        cr4_orig = cr4_val;
-
-        cr0_val &= ~(1UL << 16);
-        cr4_val &= ~(1UL << 23);
-
-        asm volatile("mov %0,%%cr4" : "+r"(cr4_val),"+m"(__force_order));
-        asm volatile("mov %0,%%cr0" : "+r"(cr0_val),"+m"(__force_order));
-
-    } else { // on
-
-        if (cr4_orig == 0)
-            return;
-
-        cr0_val |= (1UL << 16);
-
-        asm volatile("mov %0,%%cr0" : "+r"(cr0_val), "+m"(__force_order));
-        asm volatile("mov %0,%%cr4" : "+r"(cr4_orig), "+m"(__force_order));
+    unsigned long cr0;
+    unsigned long cr4;
+    
+    asm volatile("mov %%cr0, %0" : "=r"(cr0));
+    asm volatile("mov %%cr4, %0" : "=r"(cr4));
+    
+    // if CR4:CEP is on, it must be disabled in order to write to CR0:WP 
+    int disableCEP = (cr4 & (1 << 23)) !=0;
+    if (disableCEP) {
+        cr4 &= ~(1UL << 23);
+        asm volatile("mov %0,%%cr4" : "+r"(cr4),"+m"(__force_order));
+    }
+    
+    // disable CR0:WP - write protect
+    cr0 &= ~(1UL << 16);
+    asm volatile("mov %0,%%cr0" : "+r"(cr0),"+m"(__force_order));
+    
+    // write the hooked offset to the kernal's x64_sys_call
+    memcpy(syscall_offset_addr, &syscall_offset, sizeof(syscall_offset));
+    
+    // restore CR0:WP bit to 1
+    cr0 |= (1UL << 16);
+    asm volatile("mov %0,%%cr0" : "+r"(cr0), "+m"(__force_order));
+    
+    if (disableCEP) {
+        cr4 |= (1UL << 23);
+        asm volatile("mov %0,%%cr4" : "+r"(cr4), "+m"(__force_order));
     }
 }
 
 
 //
-// call the original syscall
-
+//  call the original syscall
+//
 
 long original_syscall(int NR_code, const struct pt_regs *regs) {
 
     t_syscall orig_syscall;
-    orig_syscall = (t_syscall) data_table[NR_code][ORIGINAL_SYSCALL_ADDR];
+    orig_syscall = (t_syscall) data_table[NR_code][SYSCALL_ADDR];
 
     if (orig_syscall) {
         return orig_syscall(regs);
@@ -228,3 +215,4 @@ void debug_printk(const char *fmt, ...) {
     va_end(args);
 #endif
 }
+
